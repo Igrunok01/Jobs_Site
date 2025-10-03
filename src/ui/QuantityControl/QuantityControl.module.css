@@ -1,0 +1,29 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--mantine-color-gray-2);
+  color: var(--mantine-color-gray-7);
+  border: 0;
+  transition: background-color 150ms ease;
+}
+.btn:hover {
+  background: var(--mantine-color-gray-3);
+}
+
+.input {
+  width: 20px;
+  padding: 0;
+  margin: 0;
+  text-align: center;
+  font-weight: 600;
+  font-size: 13px;
+  background: transparent;
+}
