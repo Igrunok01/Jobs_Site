@@ -31,3 +31,7 @@ if (typeof window !== 'undefined' && !('ResizeObserver' in window)) {
     value: MockResizeObserver,
   });
 }
+
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function () {};
+}

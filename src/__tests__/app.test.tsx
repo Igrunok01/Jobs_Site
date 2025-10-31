@@ -1,125 +1,82 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import App from '../App';
-import { productsFixture } from './__fixtures__/products';
-import {
-  getCartSummaryRow,
-  openCartAndGetPopover,
-  renderWithMantine,
-} from './test-utils';
+import App from '../app/App';
+import { vacanciesFixture } from './__fixtures__/vacancies';
+import { renderWithProviders } from './test-utils';
 
-type Product = (typeof productsFixture)[number];
-let mockProducts: Product[] = [];
+let mockJson: unknown = null;
 
 vi.mock('ky', () => {
-  return {
-    __esModule: true,
-    default: {
-      get: vi.fn(() => ({
-        json: vi.fn(() => Promise.resolve(mockProducts)),
-      })),
-    },
-  };
+  const recordGet = vi.fn((url?: string, options?: unknown) => {
+    void url;
+    void options;
+    return { json: vi.fn(() => Promise.resolve(mockJson)) };
+  });
+
+  const client = { get: recordGet };
+  const create = vi.fn(() => client);
+  const extend = vi.fn(() => client);
+
+  return { __esModule: true, default: client, get: recordGet, create, extend };
 });
 
-describe('Vegetable Shop', () => {
+describe('Jobs_Site', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
-    mockProducts = productsFixture.slice();
-    renderWithMantine(<App />);
-    await screen.findAllByRole('img');
+    mockJson = vacanciesFixture;
+    renderWithProviders(<App />);
+    await screen.findByRole('heading', { name: /список вакансий/i });
+    await screen.findAllByRole('link', { name: /откликнуться/i });
   });
 
-  it('Shows loader then renders product list after fetch', async () => {
-    const imgs = await screen.findAllByRole('img');
-    expect(imgs.length).toBe(productsFixture.length);
+  it('Hides skeletons after load and renders at least one "Apply" link', async () => {
+    const applyLinks = await screen.findAllByRole('link', {
+      name: /откликнуться/i,
+    });
+    expect(applyLinks.length).toBeGreaterThan(0);
+    expect(screen.queryAllByTestId('vacancy-skeleton')).toHaveLength(0);
   });
 
-  it('ProductCard quantity control increments and decrements (min = 1)', async () => {
-    const plus = screen.getAllByRole('button', { name: /plus/i })[0];
-    const minus = screen.getAllByRole('button', { name: /minus/i })[0];
-    const qty = screen.getAllByLabelText(/quantity/i)[0] as HTMLInputElement;
-
-    expect(qty).toHaveValue('1');
-    await userEvent.click(plus);
-    expect(qty).toHaveValue('2');
-    await userEvent.click(minus);
-    expect(qty).toHaveValue('1');
+  it('Header renders logo, title and FE link', () => {
+    expect(screen.getByAltText('HeadHunter')).toBeInTheDocument();
+    expect(screen.getByText(/\.FrontEnd/)).toBeInTheDocument();
+    expect(screen.getByText(/вакансии fe/i)).toBeInTheDocument();
+    expect(screen.getByText(/обо мне/i)).toBeInTheDocument();
   });
 
-  it('Add to cart uses selected quantity and updates header count and total', async () => {
-    const plus = screen.getAllByRole('button', { name: /plus/i })[0];
-    const addBtn = screen.getAllByRole('button', { name: /add to cart/i })[0];
-    const header = screen.getByRole('banner');
-
-    await userEvent.click(plus);
-    await userEvent.click(plus);
-    await userEvent.click(addBtn);
-
-    await waitFor(() =>
-      expect(within(header).getByText(/товаров/i)).toHaveTextContent('3'),
-    );
-    const expectedTotal = 3 * productsFixture[0].price;
-    expect(within(header).getByText(/\$/)).toHaveTextContent(
-      String(expectedTotal),
-    );
-  });
-
-  it('Cart popover opens on “Cart” click and lists items with line totals', async () => {
+  it('Adding "React Query" skill shows a chip', async () => {
+    const skillsInput = screen.getByPlaceholderText(/навык/i);
+    await userEvent.type(skillsInput, 'React Query');
     await userEvent.click(
-      screen.getAllByRole('button', { name: /add to cart/i })[0],
+      screen.getByRole('button', { name: /добавить навык/i }),
     );
-
-    const header = screen.getByRole('banner');
-    await waitFor(() =>
-      expect(within(header).getByText(/товаров/i)).toHaveTextContent('1'),
-    );
-
-    const popover = await openCartAndGetPopover();
-    const title = productsFixture[0].name.split('-')[0].trim();
-    expect(within(popover).getByText(title)).toBeInTheDocument();
+    expect(await screen.findByText(/react query/i)).toBeInTheDocument();
   });
 
-  it('Cart popover “+” increases quantity and updates total summary', async () => {
+  it('City Select shows chosen value "Москва" in the field', async () => {
+    const cityField = screen.getByPlaceholderText(
+      /все города/i,
+    ) as HTMLInputElement;
+    await userEvent.click(cityField);
+    const listbox = await screen.findByRole('listbox');
     await userEvent.click(
-      screen.getAllByRole('button', { name: /add to cart/i })[0],
+      within(listbox).getByRole('option', { name: 'Москва' }),
     );
-
-    const header = screen.getByRole('banner');
-    await waitFor(() =>
-      expect(within(header).getByText(/товаров/i)).toHaveTextContent('1'),
-    );
-
-    const popover = await openCartAndGetPopover();
-    const plus = await within(popover).findByLabelText(/^plus$/i);
-    await userEvent.click(plus);
-
-    const expected = 2 * productsFixture[0].price;
-    const summaryRow = getCartSummaryRow(popover);
-    await waitFor(() =>
-      expect(within(summaryRow).getByText('$' + expected)).toBeInTheDocument(),
-    );
+    expect(cityField).toHaveValue('Москва');
   });
 
-  it('Cart popover “−” at qty=1 removes item.', async () => {
-    await userEvent.click(
-      screen.getAllByRole('button', { name: /add to cart/i })[0],
-    );
+  it('Search input accepts typing and shows typed value', async () => {
+    const input = screen.getByPlaceholderText(
+      /должность или название компании/i,
+    ) as HTMLInputElement;
+    await userEvent.clear(input);
+    await userEvent.type(input, 'React');
+    expect(input).toHaveValue('React');
+  });
 
-    const header = screen.getByRole('banner');
-    await waitFor(() =>
-      expect(within(header).getByText(/товаров/i)).toHaveTextContent('1'),
-    );
-
-    const popover = await openCartAndGetPopover();
-    const minus = await within(popover).findByLabelText(/^minus$/i);
-
-    await userEvent.click(minus);
-    await waitFor(() =>
-      expect(
-        within(popover).getByText(/your cart is empty/i),
-      ).toBeInTheDocument(),
-    );
+  it('Pagination renders at least pages "1" and "2"', () => {
+    expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
   });
 });

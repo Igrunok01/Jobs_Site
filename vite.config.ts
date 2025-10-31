@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/Vegetable_Store/',
+  base: '/Jobs_Site/',
   plugins: [react()],
   test: {
     globals: true,
