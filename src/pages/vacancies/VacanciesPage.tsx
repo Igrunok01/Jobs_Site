@@ -15,7 +15,7 @@ import {
 } from '@mantine/core';
 import { IconAlertCircle } from '@tabler/icons-react';
 import FiltersCard from '../../widgets/FiltersCard';
-import VacancyCard from '../../entities/VacancyCard';
+import { VacancyCard } from '../../entities/vacancy';
 import { search } from '../../shared/images';
 
 import {
@@ -33,8 +33,9 @@ import {
   setPage,
   fetchVacancies,
 } from '../../features/vacancies';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { selectSkills } from '../../features/skills';
+import { selectArea } from '../../features/area';
 
 export default function VacanciesPage() {
   const dispatch = useAppDispatch();
@@ -45,6 +46,7 @@ export default function VacanciesPage() {
   const pages = useAppSelector(selectPages);
   const page = useAppSelector(selectPage);
   const skills = useAppSelector(selectSkills);
+  const area = useAppSelector(selectArea);
 
   useEffect(() => {
     const p = dispatch(
@@ -52,6 +54,15 @@ export default function VacanciesPage() {
     );
     return () => p.abort();
   }, []);
+
+  const isFirst = useRef(true);
+  useEffect(() => {
+    if (isFirst.current) {
+      isFirst.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page, area]);
 
   return (
     <Container size="lg" py="lg">
@@ -64,27 +75,36 @@ export default function VacanciesPage() {
             </Title>
           </Stack>
 
-          <Group gap="sm" wrap="nowrap">
-            <TextInput
-              value={query}
-              onChange={(e) => dispatch(setParam(e.currentTarget.value))}
-              miw={400}
-              radius="md"
-              placeholder="Должность или название компании"
-              leftSection={<img src={search} alt="" width={16} height={16} />}
-              leftSectionPointerEvents="none"
-              styles={{ input: { height: 42 } }}
-            />
-            <Button
-              radius="md"
-              h={42}
-              px={22}
-              loading={status === 'loading'}
-              onClick={() => dispatch(submit())}
-            >
-              <Text fz={16}>Найти</Text>
-            </Button>
-          </Group>
+          <form
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              dispatch(submit());
+            }}
+            style={{ display: 'contents' }}
+          >
+            <Group gap="sm" wrap="nowrap">
+              <TextInput
+                value={query}
+                onChange={(e) => dispatch(setParam(e.currentTarget.value))}
+                miw={400}
+                radius="md"
+                placeholder="Должность или название компании"
+                leftSection={<img src={search} alt="" width={16} height={16} />}
+                leftSectionPointerEvents="none"
+                styles={{ input: { height: 42 } }}
+              />
+              <Button
+                type="submit"
+                radius="md"
+                h={42}
+                px={22}
+                loading={status === 'loading'}
+              >
+                <Text fz={16}>Найти</Text>
+              </Button>
+            </Group>
+          </form>
         </Group>
 
         <Box mx="calc(50% - 50vw)">
@@ -137,7 +157,9 @@ export default function VacanciesPage() {
                 <Pagination
                   total={Math.max(1, pages)}
                   value={page}
-                  onChange={(p) => dispatch(setPage(p))}
+                  onChange={(p) => {
+                    dispatch(setPage(p));
+                  }}
                 />
               </Stack>
             )}

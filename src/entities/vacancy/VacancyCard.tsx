@@ -1,5 +1,5 @@
 import { Card, Group, Stack, Title, Text, Badge, Button } from '@mantine/core';
-import type { VacancyCardData } from '../shared/types';
+import type { VacancyCardData } from '../../shared/types';
 
 const currencySymbol = (code?: string) =>
   code?.toUpperCase() === 'RUR' || code?.toUpperCase() === 'RUB'
