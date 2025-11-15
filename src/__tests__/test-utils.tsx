@@ -58,5 +58,6 @@ export function renderWithProviders(
       </Provider>
     );
   }
+
   return { store, ...render(ui, { wrapper: Wrapper, ...options }) };
 }

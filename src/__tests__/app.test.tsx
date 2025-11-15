@@ -1,9 +1,48 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode, ReactElement, AnchorHTMLAttributes } from 'react';
+
 import App from '../app/App';
 import { vacanciesFixture } from './__fixtures__/vacancies';
 import { renderWithProviders } from './test-utils';
+import { fetchVacancies } from '../features/vacancies';
+
+vi.mock('react-router-dom', () => {
+  type PropsWithChildren = { children?: ReactNode };
+
+  type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
+    children?: ReactNode;
+  };
+
+  type UseSearchParamsResult = [
+    URLSearchParams,
+    (nextInit: URLSearchParams) => void,
+  ];
+
+  return {
+    BrowserRouter: ({ children }: PropsWithChildren) => <>{children}</>,
+    MemoryRouter: ({ children }: PropsWithChildren) => <>{children}</>,
+    Routes: ({ children }: PropsWithChildren) => <>{children}</>,
+    Route: (props: { element: ReactElement }) => props.element,
+    Navigate: () => null,
+    Link: (props: LinkProps) => <a {...props}>{props.children}</a>,
+
+    useLocation: () => ({
+      pathname: '/',
+      search: '',
+      hash: '',
+      state: null,
+      key: 'test',
+    }),
+    useSearchParams: (): UseSearchParamsResult => {
+      const params = new URLSearchParams();
+      const setParams = () => {};
+      return [params, setParams];
+    },
+    useParams: () => ({}) as Record<string, string | undefined>,
+  };
+});
 
 let mockJson: unknown = null;
 
@@ -21,11 +60,26 @@ vi.mock('ky', () => {
   return { __esModule: true, default: client, get: recordGet, create, extend };
 });
 
+type FetchVacanciesArgs = Parameters<typeof fetchVacancies>[0];
+
 describe('Jobs_Site', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockJson = vacanciesFixture;
-    renderWithProviders(<App />);
+
+    const { store } = renderWithProviders(<App />);
+
+    const args: FetchVacanciesArgs = {
+      text: '',
+      area: 'all',
+      skills: [],
+      page: 0,
+    };
+
+    store.dispatch(
+      fetchVacancies.fulfilled(vacanciesFixture, 'test-request', args),
+    );
+
     await screen.findByRole('heading', { name: /список вакансий/i });
     await screen.findAllByRole('link', { name: /откликнуться/i });
   });

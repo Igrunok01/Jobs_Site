@@ -1,25 +1,44 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { fetchVacancies } from './thunks';
-import type { VacanciesResponse } from '../../shared/types';
+import { fetchVacancies, fetchVacancyById } from './thunks';
+import type { HhVacancyRaw, VacancyCardData } from '../../shared/types';
+import { detectWorkFormat } from '../../shared/lib/workFormat';
 
-type VacancyState = {
-  items: VacanciesResponse;
-  status: 'idle' | 'loading' | 'succeeded' | 'failed';
+type Status = 'idle' | 'loading' | 'succeeded' | 'failed';
+
+type VacanciesState = {
+  entities: Record<string, VacancyCardData>;
+  list: {
+    ids: string[];
+    pages: number;
+    page: number;
+    found: number;
+    per_page: number;
+  };
+  status: Status;
+  statusById: Record<string, Status | undefined>;
   error: string | null;
-  page: number;
+  errorById: Record<string, string | undefined>;
 };
 
-const initialState: VacancyState = {
-  items: {
-    items: [],
-    found: 0,
-    pages: 0,
-    page: 0,
-    per_page: 0,
-  },
+const toCard = (v: HhVacancyRaw): VacancyCardData => ({
+  id: v.id,
+  name: v.name,
+  salary: v.salary ?? null,
+  experience: v.experience?.name,
+  workFormat: detectWorkFormat(v),
+  employer: { name: v.employer?.name ?? '' },
+  area: { name: v.area?.name ?? '' },
+  urls: { apply: v.alternate_url },
+  description: v.description ?? null,
+});
+
+const initialState: VacanciesState = {
+  entities: {},
+  list: { ids: [], pages: 0, page: 1, found: 0, per_page: 0 },
   status: 'idle',
+  statusById: {},
   error: null,
-  page: 1,
+  errorById: {},
 };
 
 const vacanciesSlice = createSlice({
@@ -27,30 +46,55 @@ const vacanciesSlice = createSlice({
   initialState,
   reducers: {
     setPage(state, action) {
-      state.page = Math.max(1, action.payload as number);
+      state.list.page = Math.max(1, Number(action.payload) || 1);
     },
   },
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchVacancies.pending, (state) => {
-        state.status = 'loading';
-        state.error = null;
+  extraReducers: (b) => {
+    b.addCase(fetchVacancies.pending, (s) => {
+      s.status = 'loading';
+      s.error = null;
+    });
+    b.addCase(fetchVacancies.fulfilled, (s, { payload, meta }) => {
+      s.status = 'succeeded';
+      const ids: string[] = [];
+      for (const v of payload.items) {
+        const card = toCard(v);
+        s.entities[card.id] = card;
+        ids.push(card.id);
+      }
+      // s.list.ids = ids;
+      // s.list.pages = payload.pages;
+      // s.list.found = payload.found;
+      // s.list.per_page = payload.per_page;
+      // const page0 = Number(meta.arg?.page ?? 0);
+      // s.list.page = Number.isFinite(page0) ? page0 + 1 : 1;
+      s.list.ids = ids;
+      s.list.pages = payload.pages;
+      s.list.page = (meta.arg?.page ?? 0) + 1;
+      s.list.found = payload.found;
+      s.list.per_page = payload.per_page;
+    });
+    b.addCase(fetchVacancies.rejected, (s, a) => {
+      if (a.meta.aborted || a.error?.name === 'AbortError') return;
+      s.status = 'failed';
+      s.error =
+        (a.payload as string | undefined) ??
+        a.error?.message ??
+        'Не удалось загрузить вакансии';
+    })
+      .addCase(fetchVacancyById.pending, (s, { meta }) => {
+        s.statusById[meta.arg] = 'loading';
+        s.errorById[meta.arg] = undefined;
       })
-      .addCase(fetchVacancies.fulfilled, (state, action) => {
-        state.status = 'succeeded';
-        state.items = action.payload;
-        const page0 = Number(action.meta.arg?.page ?? 0);
-        state.page = Number.isFinite(page0) ? page0 + 1 : 1;
+      .addCase(fetchVacancyById.fulfilled, (s, { payload }) => {
+        s.entities[payload.id] = payload;
+        s.statusById[payload.id] = 'succeeded';
       })
-      .addCase(fetchVacancies.rejected, (state, action) => {
-        if (action.meta.aborted || action.error?.name === 'AbortError') {
-          return;
-        }
-        state.status = 'failed';
-        state.error =
-          (action.payload as string | undefined) ??
-          action.error?.message ??
-          'Не удалось загрузить вакансии';
+      .addCase(fetchVacancyById.rejected, (s, { meta, payload, error }) => {
+        if (meta.aborted) return;
+        s.statusById[meta.arg] = 'failed';
+        s.errorById[meta.arg] =
+          (payload as string | undefined) ?? error?.message ?? 'Ошибка';
       });
   },
 });

@@ -1,26 +1,29 @@
 import type { RootState } from '../../app/store';
-import type { VacancyCardData, HhVacancyRaw } from '../../shared/types';
-import { detectWorkFormat } from '../../shared/lib/workFormat';
+import type { VacancyCardData } from '../../shared/types';
 import { createSelector } from '@reduxjs/toolkit';
 
-const toCard = (v: HhVacancyRaw): VacancyCardData => ({
-  id: v.id,
-  name: v.name,
-  salary: v.salary,
-  experience: v.experience?.name,
-  workFormat: detectWorkFormat(v),
-  employer: { name: v.employer?.name ?? '' },
-  area: { name: v.area?.name ?? '' },
-  urls: { apply: v.alternate_url },
-});
+export const selectPages = (s: RootState) => s.vacancies.list.pages;
+export const selectPage = (s: RootState) => s.vacancies.list.page;
 
-export const selectPages = (s: RootState) => s.vacancies.items.pages;
-export const selectPage = (s: RootState) => s.vacancies.page;
-
-const selectRaw = (s: RootState) => s.vacancies.items.items;
-export const selectVacancies = createSelector([selectRaw], (raw) =>
-  raw.map(toCard),
+const selectIds = (s: RootState) => s.vacancies.list.ids;
+const selectEntities = (s: RootState) => s.vacancies.entities;
+export const selectVacancies = createSelector(
+  [selectIds, selectEntities],
+  (ids, entities): VacancyCardData[] =>
+    ids.map((id) => entities[id]!).filter(Boolean),
 );
 
-export const selectError = (s: RootState) => s.vacancies.error;
+export const makeSelectVacancyById = () =>
+  createSelector(
+    [(s: RootState) => s.vacancies.entities, (_: RootState, id: string) => id],
+    (entities, id) => entities[id],
+  );
+
 export const selectStatus = (s: RootState) => s.vacancies.status;
+export const selectError = (s: RootState) => s.vacancies.error;
+
+export const selectVacancyStatusById = (s: RootState, id: string) =>
+  s.vacancies.statusById[id] ?? 'idle';
+
+export const selectVacancyErrorById = (s: RootState, id: string) =>
+  s.vacancies.errorById[id];

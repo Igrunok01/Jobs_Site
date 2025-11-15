@@ -24,10 +24,14 @@ const skillsSlice = createSlice({
     removeSkill(state, action: PayloadAction<string>) {
       state.list = state.list.filter((i) => norm(i) !== norm(action.payload));
     },
+    setSkills(state, action: PayloadAction<string[]>) {
+      state.list = action.payload;
+    },
   },
 });
 
-export const { addSkill, setInput, removeSkill } = skillsSlice.actions;
+export const { addSkill, setInput, removeSkill, setSkills } =
+  skillsSlice.actions;
 export default skillsSlice.reducer;
 export const selectSkills = (s: RootState) => s.skills.list;
 export const selectInputSkills = (s: RootState) => s.skills.value;

@@ -7,6 +7,7 @@ export type HhVacancyRaw = {
   experience?: { name?: string };
   schedule?: { id?: string };
   alternate_url?: string;
+  description?: string;
   snippet?: { requirement?: string } | null;
 };
 
@@ -25,4 +26,5 @@ export type VacancyCardData = Pick<
   experience?: string;
   workFormat?: 'remote' | 'office' | 'hybrid';
   urls?: { apply?: string };
+  description?: string | null;
 };

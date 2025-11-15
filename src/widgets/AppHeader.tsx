@@ -1,6 +1,11 @@
 import { AppShell, Container, Group, Anchor, Text, Box } from '@mantine/core';
 import { hh, point, userIcon } from '../shared/images';
+import { useHover } from '@mantine/hooks';
+import { Link, useLocation } from 'react-router-dom';
+
 export default function AppHeader() {
+  const { hovered, ref } = useHover();
+  const location = useLocation();
   return (
     <AppShell.Header
       withBorder={false}
@@ -9,7 +14,7 @@ export default function AppHeader() {
         boxShadow: '0px 2px 22.5px rgba(28, 29, 31, 0.05)',
       }}
     >
-      <Container size="lg" py="md">
+      <Container fluid py="md" mx={0}>
         <Box
           style={{
             display: 'grid',
@@ -18,8 +23,23 @@ export default function AppHeader() {
           }}
         >
           <Group gap="xs">
-            <img src={hh} alt="HeadHunter" width="30" height="30" />
-            <Text fw={600}>.FrontEnd</Text>
+            <Box
+              ref={ref}
+              component={Link}
+              to={{ pathname: '/vacancies', search: location.search }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                textDecoration: 'none',
+                color: 'inherit',
+                transition: 'background-color 120ms ease',
+                backgroundColor: hovered ? 'rgba(0,0,0,0.06)' : 'transparent',
+              }}
+            >
+              <img src={hh} alt="HeadHunter" width={30} height={30} />
+              <Text fw={600}>.FrontEnd</Text>
+            </Box>
           </Group>
           <Group gap="xl" h="24">
             <Anchor href="#" underline="never">

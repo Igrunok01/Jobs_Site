@@ -31,11 +31,11 @@ import {
   selectPages,
   selectPage,
   setPage,
-  fetchVacancies,
 } from '../../features/vacancies';
 import { useEffect, useRef } from 'react';
-import { selectSkills } from '../../features/skills';
-import { selectArea } from '../../features/area';
+import { selectSkills, setSkills } from '../../features/skills';
+import { selectArea, setArea, type AreaValue } from '../../features/area';
+import { useSearchParams } from 'react-router-dom';
 
 export default function VacanciesPage() {
   const dispatch = useAppDispatch();
@@ -47,13 +47,48 @@ export default function VacanciesPage() {
   const page = useAppSelector(selectPage);
   const skills = useAppSelector(selectSkills);
   const area = useAppSelector(selectArea);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    const p = dispatch(
-      fetchVacancies({ text: '', area: 'all', skills, page: 0 }),
-    );
-    return () => p.abort();
+    const q = searchParams.get('q');
+    const areaParam = searchParams.get('area') as AreaValue;
+    const skillsFromUrl = searchParams
+      .getAll('skill')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (q !== null) {
+      dispatch(setParam(q));
+    }
+    if (areaParam) {
+      dispatch(setArea(areaParam));
+    }
+    if (skillsFromUrl.length > 0) {
+      dispatch(setSkills(skillsFromUrl));
+    }
+    dispatch(submit());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const paramsString = searchParams.toString();
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (query.trim()) {
+      next.set('q', query.trim());
+    }
+    if (area && area !== 'all') {
+      next.set('area', area);
+    }
+    skills.forEach((skill) => {
+      const v = skill.trim();
+      if (v) next.append('skill', v);
+    });
+
+    const nextString = next.toString();
+    if (nextString !== paramsString) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [query, area, skills, paramsString, setSearchParams]);
 
   const isFirst = useRef(true);
   useEffect(() => {

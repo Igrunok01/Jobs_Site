@@ -9,7 +9,11 @@ import {
   submit,
   selectSearch,
 } from '../features/search/searchSlice';
-import { vacanciesReducer, fetchVacancies } from '../features/vacancies';
+import {
+  vacanciesReducer,
+  fetchVacancies,
+  setPage,
+} from '../features/vacancies';
 import { areaReducer, selectArea, setArea } from '../features/area';
 import {
   selectSkills,
@@ -17,7 +21,6 @@ import {
   addSkill,
   removeSkill,
 } from '../features/skills';
-import { setPage } from '../features/vacancies/slice';
 
 const listener = createListenerMiddleware();
 
