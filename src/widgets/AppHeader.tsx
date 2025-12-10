@@ -1,7 +1,7 @@
-import { AppShell, Container, Group, Anchor, Text, Box } from '@mantine/core';
-import { hh, point, userIcon } from '../shared/images';
+import { AppShell, Container, Group, Text, Box } from '@mantine/core';
+import { hh, point, userIcon, userIconActive } from '../shared/images';
 import { useHover } from '@mantine/hooks';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 
 export default function AppHeader() {
   const { hovered, ref } = useHover();
@@ -42,22 +42,49 @@ export default function AppHeader() {
             </Box>
           </Group>
           <Group gap="xl" h="24">
-            <Anchor href="#" underline="never">
-              <Group gap="xs">
-                <Text fw={500} fz={14} c="black">
-                  Вакансии FE
-                </Text>
-                <img src={point}></img>
-              </Group>
-            </Anchor>
-            <Anchor href="#" underline="never">
-              <Group gap="xs" align="center">
-                <img src={userIcon}></img>
-                <Text fw={500} fz={14} c="var(--text-muted)">
-                  Обо мне
-                </Text>
-              </Group>
-            </Anchor>
+            <NavLink
+              to={{ pathname: '/vacancies', search: location.search }}
+              style={{ textDecoration: 'none' }}
+            >
+              {({ isActive }: { isActive: boolean }) => (
+                <Group gap="xs">
+                  <Text
+                    fw={500}
+                    fz={14}
+                    c={isActive ? 'black' : 'var(--text-muted)'}
+                  >
+                    Вакансии FE
+                  </Text>
+                  <img
+                    src={point}
+                    alt=""
+                    style={{ opacity: isActive ? 1 : 0 }}
+                  />
+                </Group>
+              )}
+            </NavLink>
+            <NavLink
+              to={{ pathname: '/about' }}
+              style={{ textDecoration: 'none' }}
+            >
+              {({ isActive }: { isActive: boolean }) => (
+                <Group gap="xs" align="center">
+                  <img src={isActive ? userIconActive : userIcon}></img>
+                  <Text
+                    fw={500}
+                    fz={14}
+                    c={isActive ? 'black' : 'var(--text-muted)'}
+                  >
+                    Обо мне
+                  </Text>
+                  <img
+                    src={point}
+                    alt=""
+                    style={{ opacity: isActive ? 1 : 0 }}
+                  />
+                </Group>
+              )}
+            </NavLink>
           </Group>
           <Box />
         </Box>

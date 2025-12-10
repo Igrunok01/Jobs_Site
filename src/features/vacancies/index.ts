@@ -7,5 +7,6 @@ export {
   selectError,
   selectPages,
   selectPage,
+  selectVacancyById,
 } from './selectors';
 export { setPage } from './slice';

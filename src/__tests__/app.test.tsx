@@ -1,18 +1,49 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { ReactNode, ReactElement, AnchorHTMLAttributes } from 'react';
-
-import App from '../app/App';
+import type { ReactNode, AnchorHTMLAttributes } from 'react';
+import { VacanciesPage } from '../pages/vacancies';
+import AppHeader from '../widgets/AppHeader';
 import { vacanciesFixture } from './__fixtures__/vacancies';
 import { renderWithProviders } from './test-utils';
 import { fetchVacancies } from '../features/vacancies';
+import { AppShell } from '@mantine/core';
 
 vi.mock('react-router-dom', () => {
-  type PropsWithChildren = { children?: ReactNode };
+  type LinkLikeProps = Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> & {
+    to?: string | { pathname?: string; search?: string };
+    children?: ReactNode | ((args: { isActive: boolean }) => ReactNode);
+  };
 
-  type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
-    children?: ReactNode;
+  const resolveTo = (to?: LinkLikeProps['to']): string | undefined => {
+    if (!to) return undefined;
+    if (typeof to === 'string') return to;
+    if (typeof to === 'object') {
+      const pathname = to.pathname ?? '';
+      const search = to.search ?? '';
+      return `${pathname}${search}`;
+    }
+    return undefined;
+  };
+
+  const Link = ({ to, children, ...rest }: LinkLikeProps) => {
+    const href = resolveTo(to);
+    return (
+      <a href={href} {...rest}>
+        {children}
+      </a>
+    );
+  };
+
+  const NavLink = ({ to, children, ...rest }: LinkLikeProps) => {
+    const href = resolveTo(to);
+    const content =
+      typeof children === 'function' ? children({ isActive: false }) : children;
+    return (
+      <a href={href} {...rest}>
+        {content}
+      </a>
+    );
   };
 
   type UseSearchParamsResult = [
@@ -21,16 +52,12 @@ vi.mock('react-router-dom', () => {
   ];
 
   return {
-    BrowserRouter: ({ children }: PropsWithChildren) => <>{children}</>,
-    MemoryRouter: ({ children }: PropsWithChildren) => <>{children}</>,
-    Routes: ({ children }: PropsWithChildren) => <>{children}</>,
-    Route: (props: { element: ReactElement }) => props.element,
-    Navigate: () => null,
-    Link: (props: LinkProps) => <a {...props}>{props.children}</a>,
+    Link,
+    NavLink,
 
     useLocation: () => ({
-      pathname: '/',
-      search: '',
+      pathname: '/vacancies',
+      search: '?q=React',
       hash: '',
       state: null,
       key: 'test',
@@ -40,7 +67,10 @@ vi.mock('react-router-dom', () => {
       const setParams = () => {};
       return [params, setParams];
     },
-    useParams: () => ({}) as Record<string, string | undefined>,
+
+    useParams: () => ({ id: '1' }) as Record<string, string | undefined>,
+
+    useNavigate: () => () => {},
   };
 });
 
@@ -62,23 +92,35 @@ vi.mock('ky', () => {
 
 type FetchVacanciesArgs = Parameters<typeof fetchVacancies>[0];
 
+function renderVacanciesPage() {
+  const { store } = renderWithProviders(<VacanciesPage />);
+
+  const args: FetchVacanciesArgs = {
+    text: '',
+    area: 'all',
+    skills: [],
+    page: 0,
+  };
+  store.dispatch(
+    fetchVacancies.fulfilled(vacanciesFixture, 'test-request', args),
+  );
+  return store;
+}
+
+function renderHeader() {
+  return renderWithProviders(
+    <AppShell header={{ height: 60 }}>
+      <AppHeader />
+    </AppShell>,
+  );
+}
+
 describe('Jobs_Site', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     mockJson = vacanciesFixture;
 
-    const { store } = renderWithProviders(<App />);
-
-    const args: FetchVacanciesArgs = {
-      text: '',
-      area: 'all',
-      skills: [],
-      page: 0,
-    };
-
-    store.dispatch(
-      fetchVacancies.fulfilled(vacanciesFixture, 'test-request', args),
-    );
+    renderVacanciesPage();
 
     await screen.findByRole('heading', { name: /список вакансий/i });
     await screen.findAllByRole('link', { name: /откликнуться/i });
@@ -93,6 +135,7 @@ describe('Jobs_Site', () => {
   });
 
   it('Header renders logo, title and FE link', () => {
+    renderHeader();
     expect(screen.getByAltText('HeadHunter')).toBeInTheDocument();
     expect(screen.getByText(/\.FrontEnd/)).toBeInTheDocument();
     expect(screen.getByText(/вакансии fe/i)).toBeInTheDocument();
@@ -132,5 +175,21 @@ describe('Jobs_Site', () => {
   it('Pagination renders at least pages "1" and "2"', () => {
     expect(screen.getByRole('button', { name: '1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '2' })).toBeInTheDocument();
+  });
+
+  it('Header "Обо мне" link points to "/about"', () => {
+    renderHeader();
+    const aboutText = screen.getByText(/обо мне/i);
+    const aboutLink = aboutText.closest('a');
+    expect(aboutLink).not.toBeNull();
+    expect(aboutLink).toHaveAttribute('href', '/about');
+  });
+
+  it('Header logo link points to "/vacancies" and preserves search params', () => {
+    renderHeader();
+    const logoImg = screen.getByAltText('HeadHunter');
+    const logoLink = logoImg.closest('a');
+    expect(logoLink).not.toBeNull();
+    expect(logoLink).toHaveAttribute('href', '/vacancies?q=React');
   });
 });

@@ -13,17 +13,14 @@ export const selectVacancies = createSelector(
     ids.map((id) => entities[id]!).filter(Boolean),
 );
 
-export const makeSelectVacancyById = () =>
-  createSelector(
-    [(s: RootState) => s.vacancies.entities, (_: RootState, id: string) => id],
-    (entities, id) => entities[id],
-  );
-
 export const selectStatus = (s: RootState) => s.vacancies.status;
 export const selectError = (s: RootState) => s.vacancies.error;
 
-export const selectVacancyStatusById = (s: RootState, id: string) =>
-  s.vacancies.statusById[id] ?? 'idle';
+export const selectVacancyStatusSafe = (s: RootState, id?: string) =>
+  id ? (s.vacancies.statusById[id] ?? 'idle') : 'idle';
 
-export const selectVacancyErrorById = (s: RootState, id: string) =>
-  s.vacancies.errorById[id];
+export const selectVacancyErrorSafe = (s: RootState, id?: string) =>
+  id ? s.vacancies.errorById[id] : undefined;
+
+export const selectVacancyById = (s: RootState, id?: string) =>
+  id ? s.vacancies.entities[id] : undefined;

@@ -35,3 +35,7 @@ if (typeof window !== 'undefined' && !('ResizeObserver' in window)) {
 if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = function () {};
 }
+
+if (typeof window !== 'undefined') {
+  window.scrollTo = () => {};
+}

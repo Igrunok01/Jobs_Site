@@ -1,11 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/redux';
 import { VacancyCard } from '../../entities/vacancy';
 import {
-  makeSelectVacancyById,
-  selectVacancyStatusById,
-  selectVacancyErrorById,
+  selectVacancyStatusSafe,
+  selectVacancyErrorSafe,
+  selectVacancyById,
 } from '../../features/vacancies/selectors';
 import { fetchVacancyById } from '../../features/vacancies/thunks';
 import {
@@ -22,14 +22,9 @@ import { IconAlertCircle } from '@tabler/icons-react';
 export default function VacancyPage() {
   const { id } = useParams<{ id: string }>();
   const dispatch = useAppDispatch();
-  const selectById = useMemo(makeSelectVacancyById, []);
-  const vacancy = useAppSelector((s) => (id ? selectById(s, id) : undefined));
-  const status = useAppSelector((s) =>
-    id ? selectVacancyStatusById(s, id) : 'idle',
-  );
-  const error = useAppSelector((s) =>
-    id ? selectVacancyErrorById(s, id) : undefined,
-  );
+  const vacancy = useAppSelector((s) => selectVacancyById(s, id));
+  const status = useAppSelector((s) => selectVacancyStatusSafe(s, id));
+  const error = useAppSelector((s) => selectVacancyErrorSafe(s, id));
 
   useEffect(() => {
     if (!id) return;
